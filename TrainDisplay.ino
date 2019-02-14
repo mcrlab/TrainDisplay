@@ -1,62 +1,66 @@
 #include <ESP8266WiFi.h>
 #include <WiFiClientSecure.h>
 #include "Display.h"
+#include "config.h"
 
-const char* ssid = "PLUSNET-HHQJC9";
-const char* password = "f6db6dd64c";
+//const char* ssid = "PLUSNET-HHQJC9";
+//const char* password = "f6db6dd64c";
 
+const int DEBUG_PIN = 13;
 const char* host = "trains.mcrlab.co.uk";
 const int httpsPort = 443;
 Display screen = Display();
-  
-void setup() {
-  screen.init();
-  Serial.begin(115200);
-  Serial.println();
-  Serial.print("connecting to ");
-  Serial.println(ssid);
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-  char toDisplay[5] = "Wifi";
-  screen.renderCharArray(toDisplay);
-  
-    
+boolean paused = true;
+const int MOVEMENT_PIN = 14;
+
+void off() {
+  screen.clear();   
 }
 
-void loop() {
+void setup() {
+  Serial.begin(115200);
+  screen.init();
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
 
-  
+  char toDisplay[5] = "WIFI";
+  screen.renderCharArray(toDisplay);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
-  Serial.println("");
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
+  off();
+}
 
-  // Use WiFiClientSecure class to create TLS connection
+void triggerMovement() {
+  paused = false;
+}
+
+void displayDepartures(char from[], char to[]) {
+ while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  char toDisplay[5];
+  
   WiFiClientSecure client;
-  Serial.print("connecting to ");
-  Serial.println(host);
+
   if (!client.connect(host, httpsPort)) {
     Serial.println("connection failed");
     return;
   }
-
-  String url = "/iot/nmc/man";
-  Serial.print("requesting URL: ");
-  Serial.println(url);
+  
+  char url[13] = "/iot/nmc/man";
+  snprintf(url, sizeof(url), "/iot/%s/%s", from, to);
 
   client.print(String("GET ") + url + " HTTP/1.1\r\n" +
                "Host: " + host + "\r\n" +  
                "Connection: close\r\n\r\n");
 
-  Serial.println("request sent");
   while (client.connected()) {
     String line = client.readStringUntil('\n');
     if (line == "\r") {
-      Serial.println("headers received");
       break;
     }
   }
@@ -64,13 +68,14 @@ void loop() {
   unsigned int time_data = line.toInt();
   int minutes = (time_data % 60);
   int hours = (time_data - minutes)/ 60;
-  Serial.print(hours);
-  Serial.print(":");
-  Serial.println(minutes);
-  char toDisplay[5] = "Wifi";
-  snprintf(toDisplay, sizeof(toDisplay), "%02d%02d", hours, minutes);
-  Serial.println(toDisplay);
-  screen.renderCharArray(toDisplay);
 
-  delay(30000);
+  snprintf(toDisplay, sizeof(toDisplay), "%02d%02d", hours, minutes);
+  screen.renderCharArray(toDisplay);
+  delay(60000);
+}
+
+void loop() {
+  char from[4] = "nmc";
+  char to[4] = "man";
+  displayDepartures(from, to);
 }
