@@ -10,10 +10,6 @@ const int httpsPort = 443;
 Display screen = Display();
 boolean paused = true;
 
-void off() {
-  screen.clear();   
-}
-
 void setup() {
   Serial.begin(115200);
   delay(1000); // wait before starting Up
@@ -30,20 +26,14 @@ void setup() {
   }
 }
 
-void displayDepartures(char from[], char to[]) {
- while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-
-  char toDisplay[5];
+unsigned int fetchDepartures(char from[], char to[]){
   char url[13];
     
   WiFiClientSecure client;
 
   if (!client.connect(host, httpsPort)) {
     Serial.println("connection failed");
-    return;
+    return -1;
   }
   
   snprintf(url, sizeof(url), "/iot/%s/%s", from, to);
@@ -60,6 +50,13 @@ void displayDepartures(char from[], char to[]) {
   }
   String line = client.readStringUntil('\n');
   unsigned int time_data = line.toInt();
+  return time_data;
+}
+
+void displayDepartures(unsigned int time_data) {
+
+  char toDisplay[5];
+  
   int minutes = (time_data % 60);
   int hours = (time_data - minutes)/ 60;
 
@@ -70,6 +67,13 @@ void displayDepartures(char from[], char to[]) {
 void loop() {
   char from[4] = "nmc";
   char to[4] = "man";
-  displayDepartures(from, to);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  unsigned int nextDeparture = fetchDepartures(from, to);  
+  displayDepartures(nextDeparture);
   delay(60000);
 }
