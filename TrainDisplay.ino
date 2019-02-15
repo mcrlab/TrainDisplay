@@ -3,15 +3,12 @@
 #include "Display.h"
 #include "config.h"
 
-//const char* ssid = "PLUSNET-HHQJC9";
-//const char* password = "f6db6dd64c";
-
-const int DEBUG_PIN = 13;
+const int LED_PIN = 0;
 const char* host = "trains.mcrlab.co.uk";
 const int httpsPort = 443;
+
 Display screen = Display();
 boolean paused = true;
-const int MOVEMENT_PIN = 14;
 
 void off() {
   screen.clear();   
@@ -19,21 +16,18 @@ void off() {
 
 void setup() {
   Serial.begin(115200);
+  delay(1000); // wait before starting Up
   screen.init();
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
-
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, HIGH);
   char toDisplay[5] = "WIFI";
   screen.renderCharArray(toDisplay);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
-  off();
-}
-
-void triggerMovement() {
-  paused = false;
 }
 
 void displayDepartures(char from[], char to[]) {
@@ -43,7 +37,8 @@ void displayDepartures(char from[], char to[]) {
   }
 
   char toDisplay[5];
-  
+  char url[13];
+    
   WiFiClientSecure client;
 
   if (!client.connect(host, httpsPort)) {
@@ -51,7 +46,6 @@ void displayDepartures(char from[], char to[]) {
     return;
   }
   
-  char url[13] = "/iot/nmc/man";
   snprintf(url, sizeof(url), "/iot/%s/%s", from, to);
 
   client.print(String("GET ") + url + " HTTP/1.1\r\n" +
@@ -71,11 +65,11 @@ void displayDepartures(char from[], char to[]) {
 
   snprintf(toDisplay, sizeof(toDisplay), "%02d%02d", hours, minutes);
   screen.renderCharArray(toDisplay);
-  delay(60000);
 }
 
 void loop() {
   char from[4] = "nmc";
   char to[4] = "man";
   displayDepartures(from, to);
+  delay(60000);
 }
