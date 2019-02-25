@@ -11,12 +11,12 @@ void Display::init(){
  
 }
 
-void Display::renderCharArray(char * to_display) {
+void Display::renderCharArray(char * to_display, int dots) {
 
   a1_4.clear();
   
   for(byte i=0; i<4; i++){
-    a1_4.writeDigitAscii(i, to_display[i], (i==1));
+    a1_4.writeDigitAscii(i, to_display[i], (i==dots));
   }
   
   a1_4.writeDisplay();
