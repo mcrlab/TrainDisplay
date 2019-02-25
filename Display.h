@@ -7,11 +7,15 @@ class Display {
  public:
   Display(void);
   void init();
-  void renderCharArray(char * to_display, int dots);
+  void renderCharArray(char * to_display);
   void clear();
+  unsigned int size();
+  
  private:
-  AlphaNum4 a1_4;
-  AlphaNum4 a5_8;
+  AlphaNum4 a1;
+  AlphaNum4 a2;
+  AlphaNum4 a3;
+  AlphaNum4 a4;
 };
 
 #endif
