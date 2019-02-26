@@ -47,29 +47,28 @@ void train_remove_all(){
   train_list = NULL;
 }
 
+void format_time(char *buff, unsigned int departure_time){
+    int minutes = (departure_time % 60);
+    int hours = (departure_time - minutes) / 60;
+    sprintf(buff, "%02d%02d", hours, minutes);
+}
 
 void train_list_all(){
   train_t * current = train_list;
   Serial.println(F("---------\nCurrent Trains\n---------"));
+  char toDisplay[20] = {0};
+
   while(current != NULL){
-    
-    char toDisplay[5];
-    
-    int minutes = (current->departure % 60);
-    int hours = (current->departure - minutes) / 60;
-
-    snprintf(toDisplay, sizeof(toDisplay), "%02d%02d", hours, minutes);
-
-    Serial.print(current->from);
-    Serial.print(" ");
-    Serial.print(current->to);
-    Serial.print(" ");
-    Serial.println(toDisplay);
-      
+    char buff[5] = {0};
+    char train[10] = {0};
+    format_time(buff, current->departure);
+    sprintf(train, "%s %s", current->to, buff);
+    strcat(toDisplay, train);
+    Serial.println(train);
     current = current->next;
   }
   Serial.println(F("---------"));
-
+  screen.renderCharArray(toDisplay);
 }
 
 

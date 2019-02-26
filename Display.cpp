@@ -6,10 +6,10 @@ Display::Display(void) {
 }
 
 void Display::init(){
-  a1.begin(0x71);
-  a2.begin(0x72);
-  a3.begin(0x73);
-  a4.begin(0x74);
+  a1.begin(0x70);
+  a2.begin(0x71);
+  a3.begin(0x72);
+  a4.begin(0x73);
   
   a1.setBrightness(15);
   a2.setBrightness(15);
@@ -30,9 +30,9 @@ void Display::renderCharArray(char * to_display) {
    
   for(byte i=0; i<4; i++){
     a1.writeDigitAscii(i, to_display[i]);
-    a2.writeDigitAscii(i+4, to_display[i+4]);
-    a3.writeDigitAscii(i+8, to_display[i+8]);
-    a4.writeDigitAscii(i+12, to_display[i+12]);
+    a2.writeDigitAscii(i, to_display[i+4]);
+    a3.writeDigitAscii(i, to_display[i+8]);
+    a4.writeDigitAscii(i, to_display[i+12]);
   }
   
   a1.writeDisplay();
