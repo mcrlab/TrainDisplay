@@ -6,10 +6,6 @@
 
 Display screen = Display();
 
-char from[4] = "MAN";
-char to[4] = "NMC";
-
-
 typedef struct train {
   train * next;  // pointer to next train in the list
   char from[4]; // from CRS
@@ -63,8 +59,9 @@ void train_list_all(){
   while(current != NULL){
     char buff[5] = {0};
     char train[10] = {0};
+
     format_time(buff, current->scheduled);
-    sprintf(train, "%s %s", current->to, buff);
+    sprintf(train, "%s %s", current->from, buff);
     strcat(toDisplay, train);
     Serial.println(train);
     current = current->next;
@@ -90,8 +87,8 @@ void waitForWifi(){
   }  
 }
 
-void fetchDepartures(char from[], char to[]){
-  char json[43];
+void fetchDepartures(){
+  char json[46] = "{\"from\":[\"NMC\",\"NMN\"],\"to\":[\"MAN\"],\"limit\":2}";
   char status[32] = {0};    
   WiFiClientSecure client;
   const size_t capacity = JSON_ARRAY_SIZE(2) + 2*JSON_OBJECT_SIZE(4);
@@ -102,12 +99,10 @@ void fetchDepartures(char from[], char to[]){
     return;
   }
   
-  snprintf(json, sizeof(json), "{\"from\":[\"%s\"], \"to\":[\"%s\"], \"limit\":2 }", from, to);
-
   client.println(F("POST /spread HTTP/1.1"));
   client.println(F("Host: trains.mcrlab.co.uk"));
   client.println(F("Content-Type: application/json"));
-  client.println("Content-Length: 42");
+  client.println("Content-Length: 45");
   client.println();
   client.println(json);
 
@@ -157,7 +152,7 @@ void fetchDepartures(char from[], char to[]){
 void loop() {
   waitForWifi();
   train_remove_all();
-  fetchDepartures(from, to);  
+  fetchDepartures();  
   train_list_all();
   delay(60000);
 }
