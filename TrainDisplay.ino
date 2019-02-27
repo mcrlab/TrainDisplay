@@ -46,9 +46,15 @@ void train_remove_all(){
 }
 
 void format_time(char *buff, unsigned int departure_time){
-    int minutes = (departure_time % 60);
-    int hours = (departure_time - minutes) / 60;
-    sprintf(buff, "%02d%02d", hours, minutes);
+    if(departure_time >= 0) {
+      int minutes = (departure_time % 60);
+      int hours = (departure_time - minutes) / 60;
+      sprintf(buff, "%02d%02d", hours, minutes);
+    } else if(departure_time == -1) {
+      sprintf(buff, " %s", "DLY");
+    } else {
+      sprintf(buff, " %s", "CAN");
+    }
 }
 
 void train_list_all(){
