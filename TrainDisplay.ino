@@ -14,14 +14,16 @@ typedef struct train {
   train * next;  // pointer to next train in the list
   char from[4]; // from CRS
   char to[4]; // to CRS
-  unsigned int departure; // departure time in minutes
+  unsigned int scheduled; // departure time in minutes
+  unsigned int estimated;
 } train_t;
 
 train_t * train_list;
 
-train_t * train_create(unsigned int departure){
+train_t * train_create(unsigned int scheduled, unsigned int estimated){
   train_t * t = (train_t*) calloc(1, sizeof(*t));
-  t->departure = departure;
+  t->scheduled = scheduled;
+  t->estimated = estimated;
   t->next = NULL;
   return t;
 }
@@ -61,7 +63,7 @@ void train_list_all(){
   while(current != NULL){
     char buff[5] = {0};
     char train[10] = {0};
-    format_time(buff, current->departure);
+    format_time(buff, current->scheduled);
     sprintf(train, "%s %s", current->to, buff);
     strcat(toDisplay, train);
     Serial.println(train);
@@ -76,6 +78,7 @@ void setup() {
   Serial.begin(9600);
   delay(1000); // wait before starting Up
   screen.init();
+  screen.renderCharArray("MY TRAINDISPLAY ");
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   waitForWifi();
@@ -91,8 +94,10 @@ void fetchDepartures(char from[], char to[]){
   char json[43];
   char status[32] = {0};    
   WiFiClientSecure client;
-  const size_t capacity = JSON_ARRAY_SIZE(2) + 2*JSON_OBJECT_SIZE(3);
+  const size_t capacity = JSON_ARRAY_SIZE(2) + 2*JSON_OBJECT_SIZE(4);
   
+  
+
   if (!client.connect(host, httpsPort)) {
     return;
   }
@@ -135,10 +140,13 @@ void fetchDepartures(char from[], char to[]){
     JsonObject &train = root[i]; 
     const char * origin = train["o"]; 
     const char * destination = train["d"];
-    const char * departure_time_string = train["t"];
+    const char * scheduled_time_string = train["s"];
+    const char * estimated_time_string = train["e"];
 
-    int departure_time = atoi(departure_time_string);
-    train_t * t = train_create(departure_time);
+    int scheduled_time = atoi(scheduled_time_string);
+    int estimated_time = atoi(estimated_time_string);
+    
+    train_t * t = train_create(scheduled_time, estimated_time);
     strlcpy(t->from, origin, sizeof(t->from));
     strlcpy(t->to, destination, sizeof(t->to)); 
     train_insert(t);
