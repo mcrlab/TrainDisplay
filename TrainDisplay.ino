@@ -3,21 +3,21 @@
 #include <ArduinoJson.h>
 #include "Display.h"
 #include "config.h"
+#include "TrainService.h"
+#include "Train.h"
 
 Display screen = Display();
 
 unsigned long networkRequestInterval = 60000;
 unsigned long lastNetworkRequest = -networkRequestInterval;
 
-typedef struct train {
-  train * next;  // pointer to next train in the list
-  char from[4]; // from CRS
-  char to[4]; // to CRS
-  unsigned int scheduled; // departure time in minutes
-  unsigned int estimated;
-} train_t;
+unsigned long renderInterval = 2000;
+unsigned long lastRender = -renderInterval;
 
-train_t * train_list;
+boolean toDraw = false;
+
+
+train_t * trainList;
 
 train_t * train_create(unsigned int scheduled, unsigned int estimated){
   train_t * t = (train_t*) calloc(1, sizeof(*t));
@@ -28,7 +28,7 @@ train_t * train_create(unsigned int scheduled, unsigned int estimated){
 }
 
 void train_insert(train_t * nt){
-  train_t **t = &train_list;
+  train_t **t = &trainList;
   while(*t){
     t = &(*t)->next;
   }
@@ -37,7 +37,7 @@ void train_insert(train_t * nt){
 }
 
 void train_remove_all(){
-  train_t * current = train_list;
+  train_t * current = trainList;
   train_t * temp_node = NULL;
   
   while (current != NULL) {
@@ -45,33 +45,69 @@ void train_remove_all(){
       current = temp_node->next;
       free(temp_node);
   }
-  train_list = NULL;
+  trainList = NULL;
 }
 
-void format_time(char *buff, unsigned int departure_time){  
-    int minutes = (departure_time % 60);
-    int hours = (departure_time - minutes) / 60;
+void format_time(char *buff, unsigned int departureTime){  
+    int minutes = (departureTime % 60);
+    int hours = (departureTime - minutes) / 60;
     sprintf(buff, "%02d%02d", hours, minutes);
 }
 
-void train_list_all(){
-  train_t * current = train_list;
-  Serial.println(F("---------\nCurrent Trains\n---------"));
+void format_delay(char *buff, unsigned int delayMinutes){  
+    if(delayMinutes < 9) {
+      sprintf(buff, " +%dM", delayMinutes);
+    } else {
+      sprintf(buff, "+%dM", delayMinutes);
+    }
+}
+
+void train_list_times(){
+  train_t * current = trainList;
+
   char toDisplay[20] = {0};
 
   while(current != NULL){
     char buff[5] = {0};
     char train[10] = {0};
-
     format_time(buff, current->scheduled);
     sprintf(train, "%s %s", current->from, buff);
     strcat(toDisplay, train);
     Serial.println(train);
     current = current->next;
   }
-  Serial.println(F("---------"));
   screen.renderCharArray(toDisplay);
 }
+
+
+void train_list_delays(){
+  train_t * train = trainList;
+  char toDisplay[20] = {0};
+
+  while(train != NULL){
+    char buff[5] = {0};
+    char trainString[10] = {0};
+    unsigned int minutesDelay = 0;
+    if(train->estimated == train->scheduled) {
+      format_time(buff, train->estimated);
+    } else {
+      if(train->estimated == -1){
+        sprintf(buff, "%s", " DLY");
+      } else if(train->estimated == -2){
+        sprintf(buff, "%s", " CAN");
+      } else {
+        minutesDelay = train->estimated -  train->scheduled;
+        format_delay(buff, minutesDelay);
+      }
+    }
+    sprintf(trainString, "%s %s", train->from, buff);
+    strcat(toDisplay, trainString);
+    Serial.println(trainString);
+    train = train->next;
+  }
+  screen.renderCharArray(toDisplay);
+}
+
 
 
 void setup() {
@@ -96,8 +132,6 @@ void fetchDepartures(){
   WiFiClientSecure client;
   const size_t capacity = JSON_ARRAY_SIZE(2) + 2*JSON_OBJECT_SIZE(4);
   
-  
-
   if (!client.connect(host, httpsPort)) {
     return;
   }
@@ -153,10 +187,21 @@ void fetchDepartures(){
 }
 
 void loop() {
+  
   if(millis() > (lastNetworkRequest + networkRequestInterval)) {
     train_remove_all();
     fetchDepartures();  
-    train_list_all();
     lastNetworkRequest = millis();
+  } else {
+     if(millis() > (lastRender + renderInterval)){
+      if(toDraw){
+        train_list_delays();
+      } else {
+         train_list_times();
+      }
+      toDraw = !toDraw;
+      lastRender = millis();
+    }
   }
+
 }

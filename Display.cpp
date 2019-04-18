@@ -21,6 +21,7 @@ unsigned int Display::size(){
   return 16;
 }
 
+
 void Display::renderCharArray(char * to_display) {
 
   a1.clear();
@@ -28,6 +29,30 @@ void Display::renderCharArray(char * to_display) {
   a3.clear();
   a4.clear();   
    
+  for(byte i=0; i<4; i++){
+    a1.writeDigitAscii(i, to_display[i]);
+    a2.writeDigitAscii(i, to_display[i+4]);
+    a3.writeDigitAscii(i, to_display[i+8]);
+    a4.writeDigitAscii(i, to_display[i+12]);
+  }
+  
+  a1.writeDisplay();
+  a2.writeDisplay();
+  a3.writeDisplay();
+  a4.writeDisplay();
+  
+  Serial.println(to_display);
+
+}
+
+void Display::renderDelay(){
+  
+  char to_display[17] ="1234567890123456";
+  a1.clear();
+  a2.clear();
+  a3.clear();
+  a4.clear();   
+  
   for(byte i=0; i<4; i++){
     a1.writeDigitAscii(i, to_display[i]);
     a2.writeDigitAscii(i, to_display[i+4]);
