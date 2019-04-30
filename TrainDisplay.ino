@@ -15,6 +15,7 @@ unsigned long renderInterval = 2000;
 unsigned long lastRender = -renderInterval;
 
 boolean toDraw = false;
+const size_t capacity = JSON_ARRAY_SIZE(2) + 2*JSON_OBJECT_SIZE(4) + 40;
 
 
 train_t * trainList;
@@ -122,6 +123,7 @@ void setup() {
 
 void waitForWifi(){
   while (WiFi.status() != WL_CONNECTED) {
+    Serial.println("Waiting for WiFi");
     delay(500);
   }  
 }
@@ -130,16 +132,22 @@ void fetchDepartures(){
   char json[46] = "{\"from\":[\"NMC\",\"NMN\"],\"to\":[\"MAN\"],\"limit\":2}";
   char status[32] = {0};    
   WiFiClientSecure client;
-  const size_t capacity = JSON_ARRAY_SIZE(2) + 2*JSON_OBJECT_SIZE(4);
-  
+
+  Serial.print("connecting to ");
+  Serial.println(host);
+
+  Serial.printf("Using fingerprint '%s'\n", fingerprint);
+  client.setFingerprint(fingerprint);
+    
   if (!client.connect(host, httpsPort)) {
+    Serial.println("Can't Connect");
     return;
   }
   
   client.println(F("POST /spread HTTP/1.1"));
   client.println(F("Host: trains.mcrlab.co.uk"));
   client.println(F("Content-Type: application/json"));
-  client.println("Content-Length: 45");
+  client.println(F("Content-Length: 45"));
   client.println();
   client.println(json);
 
@@ -158,25 +166,33 @@ void fetchDepartures(){
     return;
   }
 
-  DynamicJsonBuffer jsonBuffer(capacity);
-
-  JsonArray& root = jsonBuffer.parseArray(client);
-
-  if (!root.success()) {
-    Serial.println(F("Parsing failed!"));
-    return;
-  } 
+  StaticJsonDocument<capacity> doc;
   
-  int numberOfTrains = root.size();
-  for(int i  = 0; i < numberOfTrains; i++){
-    JsonObject &train = root[i]; 
-    const char * origin = train["o"]; 
-    const char * destination = train["d"];
-    const char * scheduled_time_string = train["s"];
-    const char * estimated_time_string = train["e"];
+ // Parse JSON object
+  DeserializationError error = deserializeJson(doc, client);
+  if (error) {
+    Serial.print(F("deserializeJson() failed: "));
+    Serial.println(error.c_str());
+    Serial.println(capacity);
+    return;
+  }
+  Serial.println("Success");
+  
+  
+  int numberOfTrains = doc.size();
+  Serial.print("There are ");
+  Serial.print(numberOfTrains);
+  Serial.println(" trains in the list");
+  
+  
+  client.stop();
 
-    int scheduled_time = atoi(scheduled_time_string);
-    int estimated_time = atoi(estimated_time_string);
+  
+  for(int i  = 0; i < numberOfTrains; i++){
+    const char * origin = doc[i]["o"].as<char*>(); 
+    const char * destination = doc[i]["d"].as<char*>();
+    const int scheduled_time = doc[i]["s"].as<int>();
+    const int estimated_time = doc[i]["e"].as<int>();
     
     train_t * t = train_create(scheduled_time, estimated_time);
     strlcpy(t->from, origin, sizeof(t->from));

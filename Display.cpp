@@ -40,9 +40,6 @@ void Display::renderCharArray(char * to_display) {
   a2.writeDisplay();
   a3.writeDisplay();
   a4.writeDisplay();
-  
-  Serial.println(to_display);
-
 }
 
 void Display::renderDelay(){
@@ -79,4 +76,3 @@ void  Display::clear(){
   a3.writeDisplay();
   a4.writeDisplay();
 }
-
